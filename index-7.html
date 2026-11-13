@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>신양2리 안내</title>
+<meta name="theme-color" content="#2563EB">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="신양2리">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --ink:#17407F; --muted:#4F6C94; --line:#BFDCF5; --accent:#2F8FEA; --chip:#DDEEFF;
+  --ok:#1E9E5A; --off:#8896A6; --soon:#E58A1F; --info:#2F8FEA; --warn:#D64545;
+  --display:'Jua','Noto Sans KR',sans-serif; --body:'Noto Sans KR',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#cfe3ea;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+#app{position:relative;height:100%;max-width:520px;margin:0 auto;overflow:hidden;background:#cfe3ea}
+#map{position:absolute;inset:0;z-index:0}
+#ui{position:absolute;inset:0;z-index:1200;pointer-events:none}
+#ui>*{pointer-events:auto}
+p{margin:0}
+.mkwrap{background:none;border:0}
+.mk{position:relative;width:24px;height:24px;border-radius:50%;border:3px solid #fff;background:var(--info);box-shadow:0 2px 5px rgba(0,0,0,.35)}
+.mk.open{background:var(--ok)}.mk.closed{background:var(--off)}.mk.soon{background:var(--soon)}
+.mk.big{width:36px;height:36px;border-width:4px}
+.ml{position:absolute;left:50%;top:42px;transform:translateX(-50%);font:700 13px var(--body);white-space:nowrap;background:#fff;color:var(--ink);padding:2px 9px;border-radius:8px;border:2px solid var(--accent)}
+/* 상단 */
+.topwrap{position:absolute;left:10px;right:10px;top:max(10px,env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;pointer-events:none!important}
+.topwrap>*{pointer-events:auto}
+.searchbar{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #fff;border-radius:16px;padding:0 12px;height:50px;box-shadow:0 3px 0 rgba(20,57,110,.25),0 6px 14px rgba(20,90,170,.25)}
+.searchbar svg{width:20px;height:20px;flex:none;color:var(--muted)}
+.searchbar input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:16px;color:var(--ink);background:none}
+.searchbar input::placeholder{color:#7E93AD}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:0 2px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.pill{font-family:var(--display);font-size:15px;background:#fff;color:var(--ink);border:2px solid #fff;border-radius:999px;padding:6px 14px;box-shadow:0 3px 0 rgba(20,57,110,.22);display:inline-flex;gap:6px;align-items:center;white-space:nowrap;flex:none}
+button.pill{cursor:pointer}
+.pill.on{background:var(--accent);color:#fff}
+/* 하단 시트 */
+#sheetwrap{position:absolute;left:0;right:0;bottom:0}
+.sheet{position:relative;max-height:56vh;overflow:auto;background:linear-gradient(180deg,#F6FBFF,#E2F2FF);border-top:3px solid #fff;border-radius:22px 22px 0 0;box-shadow:0 -6px 20px rgba(20,90,170,.3);padding:8px 16px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.grab{width:40px;height:4px;border-radius:2px;background:#9CCBF2;margin:0 auto 2px;flex:none}
+.row{display:flex;gap:10px;align-items:center;min-width:0}
+.row>div{min-width:0}
+.between{justify-content:space-between}
+.lt{font-family:var(--display);font-size:22px;line-height:1.3}
+.small{font-size:13px;color:var(--muted)}
+.muted{font-size:15px;color:var(--muted)}
+.card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;background:#fff;border:2px solid #9CCBF2;border-radius:16px;box-shadow:0 3px 0 #9CCBF2;padding:11px 12px;cursor:pointer}
+.card:active{transform:translateY(2px);box-shadow:0 1px 0 #9CCBF2}
+.cinfo{display:flex;flex-direction:column;min-width:0;flex:1}
+.cinfo b{font-family:var(--display);font-weight:400;font-size:18px;line-height:1.3}
+.cinfo span{font-size:13.5px;color:var(--muted);line-height:1.4}
+.dot{width:14px;height:14px;border-radius:50%;flex:none;background:var(--info)}
+.dot.open{background:var(--ok)}.dot.closed{background:var(--off)}.dot.soon{background:var(--soon)}
+.chip{font-size:13.5px;font-weight:700;background:var(--chip);color:#3F6FA8;padding:3px 11px;border-radius:999px;white-space:nowrap;flex:none}
+.chip.open{background:var(--ok);color:#fff}.chip.closed{background:var(--off);color:#fff}.chip.soon{background:var(--soon);color:#fff}
+.chip.kid{background:#FFE9C8;color:#9A5A00}
+.sname{font-family:var(--display);font-size:24px;line-height:1.25}
+.kv{display:grid;grid-template-columns:62px 1fr;gap:6px 10px;font-size:15px}
+.kv span{color:var(--muted);font-weight:700;font-size:14px}
+.btns{display:grid;grid-template-columns:1fr;gap:8px}
+.btn{font-family:var(--display);font-size:19px;border:0;border-radius:16px;padding:13px;background:var(--accent);color:#fff;box-shadow:0 4px 0 #1A62B3;cursor:pointer;width:100%;text-align:center;text-decoration:none;display:block}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #1A62B3}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid #9CCBF2;box-shadow:0 4px 0 #9CCBF2}
+.btn.hot{background:#FF8A2B;box-shadow:0 4px 0 #C95F0F}
+.btn:disabled{opacity:.6}
+.more{font:inherit;font-size:15px;font-weight:700;color:#1A62B3;background:none;border:0;padding:2px 0;cursor:pointer;text-align:left;text-decoration:none}
+button:focus-visible,a:focus-visible{outline:3px solid #FF8A2B;outline-offset:2px}
+.box{border:2px solid #BFDCF5;border-radius:16px;padding:10px 12px;background:#fff}
+.note{font-size:13.5px;color:var(--muted);background:var(--chip);border-radius:12px;padding:9px 12px}
+.osm{font-size:11px;color:var(--muted);text-decoration:none;align-self:flex-end}
+.steps{margin:6px 0 0;padding-left:20px;font-size:14.5px}
+.steps li span{color:var(--muted)}
+.gpsl{white-space:pre-line}
+.me{position:relative;width:56px;height:56px}
+.me i{position:absolute;display:block}
+.me-halo{left:8px;top:8px;width:40px;height:40px;border-radius:50%;background:rgba(47,127,240,.22)}
+.me-dot{left:19px;top:19px;width:18px;height:18px;border-radius:50%;background:#1F6FF0;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.me-rot{left:0;top:0;width:56px;height:56px;transform-origin:28px 28px;opacity:0;transition:transform .25s linear}
+.me-rot.on{opacity:1}
+.me-rot::before{content:"";position:absolute;left:21px;top:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid #1F6FF0;filter:drop-shadow(0 0 1px #fff)}
+.fab{position:absolute;right:14px;top:-60px;width:48px;height:48px;border-radius:50%;border:2px solid #fff;background:#fff;color:var(--ink);display:grid;place-items:center;box-shadow:0 3px 0 rgba(20,57,110,.25),0 6px 12px rgba(20,90,170,.25);cursor:pointer;padding:0;z-index:2}
+.fab svg{width:25px;height:25px}
+.fab.on{background:var(--accent);color:#fff}
+.fab.wait svg{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 홈 */
+.home{position:absolute;inset:0;background:linear-gradient(180deg,#8FD6FF 0,#C9EAFF 200px,#F2FAFF 100%);overflow:auto;padding:max(12px,env(safe-area-inset-top,0px)) 16px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.hero{text-align:center;padding:2px 0 0}
+.htitle{font-family:var(--display);font-weight:400;font-size:34px;line-height:1.2;margin:0;color:#FFD84A;-webkit-text-stroke:6px #17407F;paint-order:stroke fill;text-shadow:0 4px 0 #17407F}
+.hsub{margin:10px 0 0;color:#17407F;font-weight:700;font-size:16px}
+.today{background:#fff;border:3px solid #9CCBF2;border-radius:20px;box-shadow:0 4px 0 #9CCBF2;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.today.bad{border-color:var(--warn);box-shadow:0 4px 0 var(--warn);background:#FFF5F3}
+.today h3{font-family:var(--display);font-weight:400;font-size:19px;margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trow{display:flex;gap:10px;align-items:flex-start;font-size:15.5px;line-height:1.45}
+.tic{flex:none;width:30px;height:30px;border-radius:50%;background:var(--chip);display:grid;place-items:center}
+.tic svg{width:18px;height:18px}
+.today.bad .tic{background:#FFE0DB}
+.trow b{display:block}
+.trow span{color:var(--muted);font-size:14px}
+.opennow{font:inherit;color:inherit;text-align:left;cursor:pointer;background:#E8F8EF;border:3px solid #7ED3A5;border-radius:20px;box-shadow:0 4px 0 #7ED3A5;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.opennow:active{transform:translateY(3px);box-shadow:0 1px 0 #7ED3A5}
+.opennow .big{font-family:var(--display);font-size:22px;line-height:1.3}
+.opennow .num{margin-left:auto;font-family:var(--display);font-size:34px;color:var(--ok)}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{font:inherit;color:inherit;text-align:left;background:#fff;border:3px solid var(--cc);border-radius:20px;box-shadow:0 4px 0 var(--cc);padding:12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0}
+.cat:active{transform:translateY(3px);box-shadow:0 1px 0 var(--cc)}
+.cat-ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--cc);color:#fff}
+.cat-ic svg{width:28px;height:28px}
+.cat-nm{font-family:var(--display);font-size:20px;line-height:1.25}
+.cat-ct{font-size:13.5px;color:var(--muted)}
+.cat.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px}
+.panel{position:absolute;z-index:3000;inset:0;background:linear-gradient(180deg,#9AD8FF 0,#D6EEFF 160px,#F2FAFF 100%);overflow:auto;padding:max(14px,env(safe-area-inset-top,0px)) 16px 28px;display:flex;flex-direction:column;gap:14px}
+.panel h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.25;margin:0;color:#FFD84A;-webkit-text-stroke:5px #17407F;paint-order:stroke fill;text-shadow:0 3px 0 #17407F;text-align:center}
+.panel .head{display:flex;justify-content:space-between;align-items:center}
+.tag{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.04em}
+.owner{background:#fff;border:3px solid #9CCBF2;border-radius:20px;box-shadow:0 4px 0 #9CCBF2;padding:14px;display:flex;flex-direction:column;gap:10px}
+.owner b{font-family:var(--display);font-weight:400;font-size:21px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg button{font-family:var(--display);font-size:22px;padding:18px 8px;border-radius:16px;border:3px solid #BFDCF5;background:#F4FAFF;color:var(--ink);cursor:pointer}
+.seg button.sel.open{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.sel.closed{background:var(--off);border-color:var(--off);color:#fff}
+.seg button.sel.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.sel.bad{background:var(--warn);border-color:var(--warn);color:#fff}
+/* 소개 */
+.intro{position:absolute;inset:0;background:linear-gradient(180deg,#8FD6FF 0,#3B9BE8 55%,#1F66C4 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:32px 24px calc(28px + env(safe-area-inset-bottom,0px))}
+.intro.center{align-items:center;text-align:center}
+.intro .btn.ghost{background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.7);box-shadow:none}
+.tag2{font-size:13px;font-weight:700;letter-spacing:.06em;color:#fff;text-shadow:0 1px 0 #17407F}
+.ibig{font-family:var(--display);font-weight:400;font-size:29px;line-height:1.3;margin:0;color:#fff;text-shadow:0 3px 0 #17407F}
+.logo{font-family:var(--display);font-size:40px;line-height:1.2;color:#FFD84A;-webkit-text-stroke:6px #17407F;paint-order:stroke fill;text-shadow:0 4px 0 #17407F}
+.sm{font-size:15px;opacity:.95;margin:0}
+.ringwrap{display:grid;place-items:center;padding:12px 0}
+.ring2{position:relative;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.3);display:grid;place-items:center;font-weight:700;letter-spacing:.04em;font-size:18px}
+.ring2::before,.ring2::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #FFD84A;opacity:0}
+.ring2.go::before{animation:pulse2 1.1s ease-out infinite}
+.ring2.go::after{animation:pulse2 1.1s ease-out .35s infinite}
+@keyframes pulse2{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.bar{width:160px;height:6px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#FFD84A;animation:loadbar 1.3s linear forwards}
+@keyframes loadbar{to{width:100%}}
+.slidebox{display:grid;place-items:center;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid #fff;margin:0 auto}
+.slidebox svg{width:80px;height:80px}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4)}
+.dots i.on{background:#fff}
+.skip{position:absolute;right:16px;top:max(14px,env(safe-area-inset-top,0px));background:none;border:0;color:#fff;opacity:.9;font:inherit;font-size:15px;cursor:pointer}
+
+/* 기념샷 사진첩 */
+.sprite{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.sprite.lock{filter:brightness(0);opacity:.22}
+.feat{font:inherit;color:inherit;text-align:left;cursor:pointer;background:linear-gradient(135deg,#FFF3D6,#FFE2A8);border:3px solid #FFB84A;border-radius:20px;box-shadow:0 4px 0 #FFB84A;padding:10px 14px;display:flex;align-items:center;gap:12px}
+.feat:active{transform:translateY(3px);box-shadow:0 1px 0 #FFB84A}
+.feat .fi{width:64px;height:48px;flex:none}
+.feat .ft{font-family:var(--display);font-size:20px;line-height:1.3}
+.feat .fp{margin-left:auto;font-family:var(--display);font-size:22px;color:#C95F0F;white-space:nowrap}
+.albc{font:inherit;color:inherit;text-align:left;cursor:pointer;background:#fff;border:3px solid #9CCBF2;border-radius:20px;box-shadow:0 4px 0 #9CCBF2;padding:10px 14px;display:flex;align-items:center;gap:12px}
+.albc:active{transform:translateY(3px);box-shadow:0 1px 0 #9CCBF2}
+.albc .big{font-family:var(--display);font-size:20px;line-height:1.3}
+.albc .num{margin-left:auto;font-family:var(--display);font-size:24px;color:#C95F0F;white-space:nowrap}
+.minis{display:flex;gap:4px;flex:none}
+.minis i{display:block;width:22px;height:22px;border-radius:6px;background:#E3F1FF;border:2px solid #BFDCF5;padding:1px}
+.minis i.on{background:#FFE9A8;border-color:#FFB84A}
+.cert{border:3px dashed #FFB84A;border-radius:18px;background:#FFF8E8;padding:12px;display:flex;flex-direction:column;gap:8px}
+.cert.done{border-style:solid;border-color:var(--ok);background:#EDFAF2}
+.cert b{font-family:var(--display);font-weight:400;font-size:19px}
+.cert .crow{display:flex;gap:12px;align-items:center}
+.cert .cm{width:72px;height:72px;flex:none;background:#fff;border-radius:14px;border:2px solid #FFD58A;padding:4px}
+.thumb{width:72px;height:72px;flex:none;border-radius:14px;overflow:hidden;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);position:relative;background:#fff}
+.thumb img.ph{width:100%;height:100%;object-fit:cover;display:block}
+.file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+label.btn{cursor:pointer}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.slot{background:#fff;border:3px solid #BFDCF5;border-radius:18px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;min-width:0}
+.slot.got{border-color:#FFB84A;background:#FFF8E8;box-shadow:0 3px 0 #FFB84A}
+.slot .sp{position:relative;width:100%;aspect-ratio:1/1;border-radius:12px;background:#EAF5FF;overflow:hidden;display:grid;place-items:center}
+.slot .sp img.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slot .sp .bd{position:absolute;right:4px;bottom:4px;width:44px;height:44px;background:#fff;border-radius:50%;border:2px solid #FFB84A;padding:4px}
+.slot .sp .big0{width:70%;height:70%}
+.slot b{font-family:var(--display);font-weight:400;font-size:16px;line-height:1.25}
+.slot span.s2{font-size:12.5px;color:var(--muted)}
+.pts{background:#fff;border:3px solid #FFB84A;border-radius:20px;box-shadow:0 4px 0 #FFB84A;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.pts .pn{font-family:var(--display);font-size:34px;color:#C95F0F;line-height:1.1}
+.bonus{background:#FFE9A8;border-radius:14px;padding:9px 12px;font-weight:700;font-size:14.5px}
+.rq{background:#FFF8E8;border:3px solid #FFB84A;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.bigok{font-family:var(--display);font-size:30px;color:var(--ok);text-align:center}
+
+
+/* ===== 정보 앱 스타일 ===== */
+:root{--ink:#191F28;--muted:#6B7684;--line:#E5E8EB;--accent:#2563EB;--chip:#EEF2F6;--ok:#12A150;--warn:#E5483B;--soon:#E08A00;--display:'Noto Sans KR',system-ui,sans-serif;--tab:62px}
+body,#app{background:#F2F4F6}
+body{font-size:16px}
+.mk{border-width:2.5px}
+/* 공통 */
+.btn{font-family:var(--body);font-weight:700;font-size:17px;border-radius:14px;padding:0 14px;min-height:52px;line-height:52px;background:var(--accent);color:#fff;box-shadow:none}
+.btn:active{transform:none;opacity:.85;box-shadow:none}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.hot{background:var(--accent);box-shadow:none}
+.btn:disabled{opacity:.4}
+label.btn{display:block}
+.pill{font-family:var(--body);font-weight:700;font-size:14px;background:#fff;color:var(--ink);border:0;border-radius:999px;padding:8px 14px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.pill.on{background:var(--accent);color:#fff}
+.chip{font-weight:700;font-size:12.5px;background:var(--chip);color:#4E5968;padding:3px 10px;border-radius:8px}
+.chip.open{background:#E3F6EC;color:#0B7A3E}.chip.closed{background:#EEF0F3;color:#6B7684}.chip.soon{background:#FFF1D6;color:#9A5A00}.chip.kid{background:#E8F0FF;color:#1D4FBF}
+.dot.open{background:var(--ok)}.dot.soon{background:var(--soon)}
+.more{color:var(--accent)}
+.note{background:#F2F4F6;border-radius:12px;color:var(--muted)}
+.box{border:1px solid var(--line);border-radius:14px}
+/* 하단 탭 */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tab);z-index:4000;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:content-box}
+.tb{font:inherit;background:none;border:0;color:#8B95A1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:700;cursor:pointer}
+.tb svg{width:25px;height:25px}
+.tb.on{color:var(--accent)}
+/* 홈 */
+.home{background:#F2F4F6;gap:12px;padding:max(14px,env(safe-area-inset-top,0px)) 16px calc(var(--tab) + 24px + env(safe-area-inset-bottom,0px));bottom:0}
+.appbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ab-t{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.ab-s{font-size:13.5px;color:var(--muted)}
+.gpsbtn{font:inherit;font-size:13.5px;font-weight:700;color:var(--accent);background:#fff;border:0;border-radius:999px;padding:8px 13px;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer;flex:none}
+.gpsbtn.on{background:var(--accent);color:#fff}
+.fsearch{font:inherit;display:flex;align-items:center;gap:10px;background:#fff;border:0;border-radius:14px;height:50px;padding:0 14px;color:#8B95A1;font-size:16px;text-align:left;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.fsearch svg{width:20px;height:20px;flex:none}
+.stat{background:#fff;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.st-h{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700}
+.dotl{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
+.stat.bad .dotl{background:var(--warn)}
+.stat.bad{background:#FFF4F2}
+.stat p{font-size:14px;color:var(--muted)}
+.st-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.st-g div{background:#F2F4F6;border-radius:12px;padding:9px 10px;display:flex;flex-direction:column;gap:1px}
+.stat.bad .st-g div{background:#FFE5E1}
+.st-g span{font-size:12.5px;color:var(--muted)}
+.st-g b{font-size:17px}
+.gridm{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;background:#fff;border-radius:18px;padding:16px 8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.gi{font:inherit;color:var(--ink);background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13px;font-weight:500;line-height:1.25;cursor:pointer;text-align:center;min-width:0}
+.gi:active .gic{opacity:.7}
+.gic{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:color-mix(in srgb,var(--cc) 14%,#fff);color:var(--cc)}
+.gic svg{width:25px;height:25px}
+.gi .bg{position:relative}
+.gi .nb{position:absolute;right:-4px;top:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--ok);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.sec{background:#fff;border-radius:18px;padding:6px 16px 8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.sec-h{display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px}
+.sec-h b{font-size:18px}
+.sec-h button{font:inherit;font-size:14px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;padding:4px 0}
+.rowi{font:inherit;color:inherit;text-align:left;background:none;border:0;border-top:1px solid #F0F2F4;width:100%;display:flex;align-items:center;gap:12px;padding:13px 0;cursor:pointer}
+.sec .rowi:first-of-type{border-top:0}
+.rowi .ri{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#EEF4FF;color:var(--accent);flex:none}
+.rowi .ri svg{width:22px;height:22px}
+.rowi .rt{display:flex;flex-direction:column;min-width:0;flex:1}
+.rowi .rt b{font-size:16.5px;font-weight:700;line-height:1.35}
+.rowi .rt span{font-size:13.5px;color:var(--muted);line-height:1.4}
+.empty{font-size:14.5px;color:var(--muted);padding:10px 0 14px}
+.foot{font-size:12.5px;color:#8B95A1;text-align:center;line-height:1.5;padding:2px 8px}
+.home>*{flex:none}
+/* 목록·상세 시트 */
+#sheetwrap{bottom:var(--tab)}
+.sheet{background:#fff;border:0;border-radius:20px 20px 0 0;box-shadow:0 -4px 16px rgba(0,0,0,.14);max-height:58vh;padding-bottom:16px}
+.grab{background:#D1D6DB}
+.lt{font-family:var(--body);font-weight:700;font-size:20px}
+.sname{font-family:var(--body);font-weight:700;font-size:22px}
+.card{background:none;border:0;border-top:1px solid #F0F2F4;border-radius:0;box-shadow:none;padding:13px 2px}
+.card:active{transform:none;background:#F7F8FA;box-shadow:none}
+.cinfo b{font-family:var(--body);font-weight:700;font-size:16.5px}
+.fab{right:14px;top:-62px;border:0;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.fab.on{background:var(--accent)}
+.topwrap .searchbar{border:0;box-shadow:0 2px 8px rgba(0,0,0,.2);border-radius:14px}
+.today,.opennow,.feat,.albc,.cats,.cat,.hero{display:none}
+/* 패널 */
+.panel{background:#F2F4F6;z-index:3000;bottom:var(--tab);inset:0 0 calc(var(--tab) + env(safe-area-inset-bottom,0px)) 0;padding:max(16px,env(safe-area-inset-top,0px)) 16px 24px;gap:12px}
+.panel h2{font-family:var(--body);font-size:24px;font-weight:700;color:var(--ink);-webkit-text-stroke:0;text-shadow:none;text-align:left}
+.tag{color:var(--muted);font-weight:700}
+.owner,.pts,.rq,.cert,.slot{background:#fff;border:0;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.owner b,.cert b{font-family:var(--body);font-weight:700;font-size:17.5px}
+.cert{background:#F5F8FF;border:0;box-shadow:none}.cert.done{background:#EAF7F0}
+.rq{background:#FFF7E6}
+.seg button{font-family:var(--body);font-weight:700;font-size:18px;border:0;background:#F2F4F6;border-radius:14px;padding:18px 8px}
+.pts .pn{font-family:var(--body);font-size:32px;color:var(--ink);font-weight:700}
+.slot{padding:8px;gap:6px}.slot.got{background:#EAF7F0}
+.slot b{font-family:var(--body);font-weight:700;font-size:15px}
+.slot .sp{background:#F2F4F6;border-radius:12px}
+.bigok{font-family:var(--body);font-weight:700;font-size:24px}
+/* 소개 화면 */
+.intro{background:var(--accent)}
+.intro .btn.hot{background:#fff;color:var(--accent)}
+.logo,.ibig{font-family:var(--body);font-weight:700;color:#fff;-webkit-text-stroke:0;text-shadow:none}
+.logo{font-size:36px}
+.ibig{font-size:26px}
+.ring2{background:rgba(255,255,255,.22)}
+
+.sec-h2{display:flex;justify-content:space-between;align-items:center;padding:4px 2px 0}
+.sec-h2 b{font-size:20px}
+.sec-h2 button{font:inherit;font-size:14px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;padding:4px 0}
+.hscroll{scroll-padding:0 16px;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:-4px -16px 0;padding:4px 16px 6px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.ac{font:inherit;color:var(--ink);text-align:left;flex:none;width:232px;scroll-snap-align:start;border:0;border-radius:18px;padding:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--cc) 22%,#fff),color-mix(in srgb,var(--cc) 6%,#fff));box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:5px;cursor:pointer;min-height:176px}
+.ac:active{opacity:.85}
+.ac-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ac-ic{width:46px;height:46px;border-radius:14px;background:var(--cc);color:#fff;display:grid;place-items:center}
+.ac-ic svg{width:26px;height:26px}
+.ac b{font-size:19px;line-height:1.3}
+.ac-s{font-size:13px;font-weight:700;color:var(--cc)}
+.ac-d{font-size:13.5px;color:#4E5968;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.toast{position:absolute;left:16px;right:16px;bottom:calc(var(--tab) + 18px);z-index:6000;background:#191F28;color:#fff;border-radius:12px;padding:12px 14px;font-size:15px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+
+.ins{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px}
+.ins img{width:48px;height:48px;border-radius:12px;flex:none}
+.ins .btn{width:auto;flex:none;padding:10px 18px;font-size:15px;margin:0}
+.ins .it{flex:1;min-width:0}.ins .it b{display:block;font-size:16px}.ins .it span{display:block;font-size:13px;color:#6B7684;margin-top:2px}
+.stp{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.stp i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-style:normal;font-weight:700;display:grid;place-items:center;font-size:14px}
+.stp p{margin:0;font-size:15.5px;line-height:1.5}
+/* 로딩 화면 */
+#splash{position:fixed;inset:0;z-index:9000;background:linear-gradient(180deg,#3B82F6 0%,#2563EB 55%,#1D4FBF 100%);color:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease,visibility .45s ease;animation:spOut .45s ease 7s forwards}
+#splash.off{opacity:0;visibility:hidden;pointer-events:none}
+@keyframes spOut{to{opacity:0;visibility:hidden;pointer-events:none}}
+.sp-in{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;text-align:center}
+.sp-logo{width:170px;height:auto;animation:spBob 2.2s ease-in-out infinite}
+.sp-ic{width:92px;height:92px;border-radius:28px;background:rgba(255,255,255,.18);display:grid;place-items:center;animation:spBob 2.2s ease-in-out infinite}
+.sp-ic svg{width:54px;height:54px}
+.sp-t{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.sp-s{font-size:15px;opacity:.9}
+.sp-spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spRot .9s linear infinite;margin-top:12px}
+@keyframes spRot{to{transform:rotate(360deg)}}
+.sp-bar{width:170px;height:5px;border-radius:3px;background:rgba(255,255,255,.28);overflow:hidden;margin-top:10px}
+.sp-bar i{display:block;height:100%;width:40%;border-radius:3px;background:#fff;animation:spRun 1.3s ease-in-out infinite}
+.sp-m{font-size:13px;opacity:.8}
+@keyframes spBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes spRun{0%{transform:translateX(-110%)}100%{transform:translateX(330%)}}
+@media (prefers-reduced-motion:reduce){.sp-ic,.sp-logo,.sp-bar i{animation:none}.sp-spin{animation-duration:2.4s}.sp-bar i{width:100%}}
+@media (prefers-reduced-motion:reduce){.ring2.go::before,.ring2.go::after{animation:none;opacity:.7}.bar i{animation:none;width:100%}.fab.wait svg{animation:none}}
+</style>
+</head>
+<body>
+<script>
+var BUILD='v6 · 2026-11-13 18:30';
+window.addEventListener('error',function(e){try{var d=document.getElementById('diag');if(!d){d=document.createElement('div');d.id='diag';d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#b00020;color:#fff;padding:10px 12px;border-radius:10px;font:13px/1.4 sans-serif;white-space:pre-wrap;word-break:break-all';document.body.appendChild(d);}d.textContent+='오류('+BUILD+'): '+(e.message||'')+' @'+(e.lineno||'?')+'\n';}catch(x){}});
+</script>
+<div id="splash" role="status" aria-live="polite"><div class="sp-in"><img class="sp-logo" src="logo-white.png" alt=""><div class="sp-t">신양2리</div><div class="sp-s">추자도 · 관광명소 안내</div><div class="sp-spin" aria-hidden="true"></div><div class="sp-m">섬 소식을 불러오는 중…</div></div></div>
+<div id="app"><div id="map"></div><div id="ui"></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ============================================================
+   시설 데이터. 이름 중 (예시)가 붙은 것은 실제 가게 정보를 모르는 예시이고,
+   모든 lat/lng는 임시 좌표입니다. 답사 후 지도 앱에서 복사한 실제 좌표로 바꾸세요.
+   st: open(영업 중) / closed(쉬는 중) / soon(준비 중) / info(안내)
+   biz: true면 '가게 주인 화면'에서 영업 상태를 바꿀 수 있는 시설
+   ============================================================ */
+/* ============================================================
+   백엔드. 아래 두 값을 채우면 Supabase 실서버로 실시간 공유됩니다.
+   비워 두면 '서버 미연결'(같은 브라우저의 탭끼리만 공유)로 동작합니다.
+   ============================================================ */
+var SUPABASE_URL='https://grqsbpxluwxkuayyomyk.supabase.co';       /* 예: https://abcdxyz.supabase.co */
+var SUPABASE_ANON_KEY='sb_publishable_SzovjXFnC3IGXgFe4ylpvA_Ax8FP6xn';  /* Project Settings > API 의 anon(또는 publishable) key */
+var BIZ=[1,2,3,6,15];      /* 가게 주인이 영업 상태를 바꾸는 시설 번호 */
+var KIND={cafe:{t:'카페 음료 1잔 할인',shop:2},food:{t:'식당 식사 할인 (예시)',shop:1},stay:{t:'숙박 연장 소액 할인 (예시)',shop:15}};
+var KINDS=['cafe','food','stay'];
+function devId(){var d=null;try{d=localStorage.getItem('sy_dev');}catch(e){}if(!d){d='d'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('sy_dev',d);}catch(e){}}return d;}
+var DEV=devId();
+/* ---------- 앱 설치 (홈 화면에 추가) ---------- */
+var UA=navigator.userAgent||'';
+var INS={ev:null,standalone:false,ios:/iPhone|iPad|iPod/.test(UA),kakao:/KAKAOTALK|NAVER\(|Instagram|FBAN|FBAV|Line\//i.test(UA),android:/Android/.test(UA)};
+try{INS.standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;}catch(e){}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();INS.ev=e;try{repaint();}catch(x){}});
+window.addEventListener('appinstalled',function(){INS.ev=null;INS.standalone=true;try{repaint();}catch(x){}});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+function today(){return new Date(Date.now()+9*3600e3).toISOString().slice(0,10);}
+var B=(function(){
+  var cbs=[];function fire(){cbs.forEach(function(f){try{f();}catch(e){}});}
+  var useSb=!!(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient);
+  if(useSb){
+    var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY),tm=null;
+    function deb(){clearTimeout(tm);tm=setTimeout(fire,150);}
+    ['spot_status','ferry','coupons'].forEach(function(tb){});
+    sb.channel('sy-live').on('postgres_changes',{event:'*',schema:'public',table:'spot_status'},deb).on('postgres_changes',{event:'*',schema:'public',table:'ferry'},deb).on('postgres_changes',{event:'*',schema:'public',table:'coupons'},deb).subscribe();
+    function rpc(n,a){return sb.rpc(n,a).then(function(r){if(r.error)throw r.error;return r.data;});}
+    return {mode:'supabase',onChange:function(f){cbs.push(f);},
+      load:function(){return Promise.all([sb.from('spot_status').select('*'),sb.from('ferry').select('*').eq('id',1).maybeSingle(),sb.from('coupons').select('*').order('issued_at')]).then(function(r){r.forEach(function(x){if(x.error)throw x.error;});var sp={};(r[0].data||[]).forEach(function(x){sp[x.spot_id]=x.status;});return {spots:sp,ferry:r[1].data||{cancelled:false,wave:0.8,wind:4},coupons:r[2].data||[]};});},
+      checkPin:function(p){return rpc('check_pin',{p:p});},
+      setStatus:function(p,spot,st){return rpc('owner_set_status',{p_pin:p,p_spot:spot,p_status:st});},
+      setFerry:function(p,c,w,wi){return rpc('owner_set_ferry',{p_pin:p,p_cancelled:c,p_wave:w,p_wind:wi});},
+      checkin:function(spot){return rpc('checkin',{p_device:DEV,p_spot:spot});},
+      requestUse:function(id,shop){return rpc('request_coupon_use',{p_id:id,p_device:DEV,p_shop:shop});},
+      confirm:function(p,id){return rpc('owner_confirm_coupon',{p_pin:p,p_id:id});},
+      reset:function(p){return rpc('owner_reset',{p_pin:p});}};
+  }
+  /* ----- 로컬 시연 모드: 브라우저 저장소 + 탭 간 방송 ----- */
+  var KEY='sy_db_v1',mem=null,bc=null,PIN='1234';
+  try{bc=new BroadcastChannel('sy_db');bc.onmessage=fire;}catch(e){}
+  window.addEventListener('storage',function(e){if(e.key===KEY)fire();});
+  function rd(){var d=null;try{d=JSON.parse(localStorage.getItem(KEY));}catch(e){}d=d||mem;if(!d)d={spots:{1:'open',2:'open',3:'open',6:'open',15:'open'},ferry:{cancelled:false,wave:0.8,wind:4},coupons:[]};return d;}
+  function wr(d){mem=d;try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}if(bc)bc.postMessage(1);fire();}
+  function id(){return 'c'+Math.random().toString(36).slice(2)+Date.now().toString(36);}
+  function bad(){return Promise.reject(new Error('PIN이 맞지 않아요'));}
+  return {mode:'local',onChange:function(f){cbs.push(f);},
+    load:function(){return Promise.resolve(rd());},
+    checkPin:function(p){return Promise.resolve(p===PIN);},
+    setStatus:function(p,spot,st){if(p!==PIN)return bad();var d=rd();d.spots[spot]=st;wr(d);return Promise.resolve();},
+    setFerry:function(p,c,w,wi){if(p!==PIN)return bad();var d=rd();d.ferry={cancelled:c,wave:w,wind:wi};wr(d);return Promise.resolve();},
+    checkin:function(spot){var d=rd();if(!d.ferry.cancelled)return Promise.resolve(0);var n=0,t=today();KINDS.forEach(function(k){var has=d.coupons.some(function(c){return c.device_id===DEV&&c.kind===k&&c.issued_on===t;});if(!has){d.coupons.push({id:id(),device_id:DEV,kind:k,state:'issued',req_shop:null,issued_on:t,issued_at:new Date().toISOString(),used_at:null});n++;}});wr(d);return Promise.resolve(n);},
+    requestUse:function(cid,shop){var d=rd();d.coupons.forEach(function(c){if(c.id===cid&&c.device_id===DEV&&c.state==='issued'){c.state='requested';c.req_shop=shop;}});wr(d);return Promise.resolve();},
+    confirm:function(p,cid){if(p!==PIN)return bad();var d=rd();d.coupons.forEach(function(c){if(c.id===cid&&c.state==='requested'){c.state='used';c.used_at=new Date().toISOString();}});wr(d);return Promise.resolve();},
+    reset:function(p){if(p!==PIN)return bad();var d=rd();d.coupons=[];wr(d);return Promise.resolve();}};
+})();
+var A=[33.9555929005988,126.331252043422];
+function at(dy,dx){return [A[0]+dy,A[1]+dx];}
+var P=[
+ {name:'도착 항구',sub:'배에서 내리는 곳 · 여객선 안내',cat:1,st:'info',ll:at(0,0),desc:'추자도에 도착하는 항구예요. 여기서 안내를 열고 마을을 둘러보세요. (이름과 위치는 현장 확인 후 수정)',tip:'돌아가는 배 시간 전에 이곳으로 돌아오세요.'},
+ {name:'마을 식당 (예시)',sub:'식사 · 예시 가게',cat:0,st:'open',biz:true,ll:at(0.0005,0.0003),desc:'마을 식당 예시예요. 실제 가게 이름과 위치는 조사 후 바꿔요.',tip:'배가 들어오는 시간에는 손님이 몰릴 수 있어요. (예시)'},
+ {name:'마을 카페 (예시)',sub:'커피 · 예시 가게 (개장 예정)',cat:0,st:'open',biz:true,ll:at(0.0007,0.0008),desc:'이장님 인터뷰에서 곧 문을 연다고 한 식당·커피숍을 예시로 넣었어요. (개장 시기는 확인 필요)',tip:'개장하면 영업 상태가 이곳에 표시돼요.'},
+ {name:'편의점 (예시)',sub:'생필품 · 예시 가게',cat:1,st:'open',biz:true,ll:at(0.0003,-0.0003),desc:'편의점 예시예요. 실제 가게 위치는 조사 후 바꿔요.',tip:'방문객이 많이 찾는 곳이에요. (이장님 인터뷰)'},
+ {name:'공용화장실 (예시)',sub:'화장실 · 위치 예시',cat:1,st:'info',ll:at(0.0001,0.0004),desc:'공용 시설이에요. 위치는 조사 후 바꿔요.',tip:'모두가 쓰는 곳이에요. 이용 후 정리해 주세요.'},
+ {name:'신양2리 마을회관',sub:'마을 소식 · 행사',cat:1,st:'info',ll:at(0.0016,0.0020),desc:'마을 소식과 행사가 열리는 곳이에요.',tip:'큰 행사 때는 풍물놀이가 열리기도 해요. (이장님 인터뷰)'},
+ {name:'숭어체험장',sub:'체험 · 아이와 함께',cat:2,st:'open',biz:true,kid:true,ll:at(0.0004,0.0010),desc:'마을에서 운영하는 숭어 체험장이에요. (운영 시기는 확인 필요)',tip:'아이는 어른과 함께 입장하세요. (예시)'},
+ {name:'요트계류장',sub:'항구 · 바다 구경',cat:2,st:'info',ll:at(0.0010,-0.0012),desc:'요트가 정박하는 곳이에요. 항구 풍경을 볼 수 있어요.',tip:'방파제 근처는 바람이 강할 수 있어요.'},
+ {name:'가족 숙박시설 예정지',sub:'숙박 · 계획 단계',cat:3,st:'soon',ll:at(0.0006,0.0016),desc:'마을이 가족 숙박시설을 계획 중인 부지예요. (시기 미정)',tip:'생기면 예약과 이용 안내가 이곳에 연결돼요.'},
+ {name:'장작평사',sub:'쉼 · 조성 중',cat:3,st:'soon',ll:at(0.0002,0.0006),desc:'마을이 힐링 공간을 조성하고 있는 곳이에요. (이장님 인터뷰)',tip:'완성되면 쉬어 가기 좋은 곳이 돼요.'},
+ {name:'용듬벙',sub:'명소 · 용 설화',cat:4,st:'info',ll:at(0.0025,0.0045),desc:'용이 승천했다는 굴 이야기가 전해지는 곳으로, 마을이 관광상품 1호로 꼽았어요.',tip:'바닷가 바위 지형이라 미끄러울 수 있어요. 안전에 유의하세요.'},
+ {name:'석두천산',sub:'명소 · 올레길 전망',cat:4,st:'info',ll:at(0.0035,0.0010),desc:'올레길 코스와 이어지는 산이에요. (코스 정보는 확인 필요)',tip:'걷기 편한 신발을 신으세요.'},
+ {name:'수덕도(사자섬)',sub:'전망 · 바다 위의 섬',cat:4,st:'info',ll:at(0.0050,0.0030),desc:'바다 위에 솟은 사자 모양 섬이에요. 멀리서 바라보는 전망 포인트예요.',tip:'맑은 날 더 잘 보여요.'},
+ {name:'올레 18-2 코스',sub:'명소 · 올레길',cat:4,st:'info',ll:at(0.0030,-0.0020),desc:'이장님이 꼭 와야 할 곳으로 꼽은 올레길이에요. (코스 길이와 시간은 확인 필요)',tip:'걷기 편한 신발과 물을 챙기세요.'},
+ {name:'거북이 바위 (설화)',sub:'명소 · 소원 이야기',cat:4,st:'info',ll:at(0.0020,0.0035),desc:'대왕산의 거북이 바위 머리를 만지면 좋은 일이 생긴다는 이야기가 전해져요. (정확한 위치는 확인 필요)',tip:'아이와 함께 소원을 빌어 보세요.'},
+ {name:'마을 민박 (예시)',sub:'숙박 · 예시 가게',cat:3,st:'open',biz:true,ll:at(0.0008,0.0014),desc:'결항 때 묵을 수 있는 민박 예시예요. 실제 숙소 이름과 위치는 조사 후 바꿔요.',tip:'결항 당일에는 방이 빨리 찰 수 있어요. (예시)'}
+];
+var IC={
+ food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 3c-2 2-3 5-3 8h3v10"/></svg>',
+ conv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6"/></svg>',
+ exp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-5 9-6 14-2l4-3v10l-4-3c-5 4-11 3-14-2z"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>',
+ stay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg>',
+ spot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20l7-12 4 7 3-4 6 9z"/></svg>',
+ map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>',
+ ship:'<svg viewBox="0 0 24 24" fill="none" stroke="#17407F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2 5h14l2-5-9-3zM12 12V4h4M7 20"/></svg>',
+ wave:'<svg viewBox="0 0 24 24" fill="none" stroke="#17407F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c2.5-3 4.5-3 7 0s4.5 3 7 0 3-2 6 0M2 16c2.5-3 4.5-3 7 0s4.5 3 7 0 3-2 6 0"/></svg>'
+};
+var C=[
+ {name:'먹거리·카페',ic:'food',col:'#FF8A2B'},
+ {name:'편의·교통',ic:'conv',col:'#2F8FEA'},
+ {name:'체험',ic:'exp',col:'#1E9E5A'},
+ {name:'숙박·쉼',ic:'stay',col:'#8A63D2'},
+ {name:'명소·올레길',ic:'spot',col:'#C4703F'}
+];
+var S={got:{},photos:{},tagged:{},cancel:false,wave:0.8,wind:4,coupons:[],allc:[],ownerOk:false,pin:'',panel:'',view:'home',cat:-1,q:'',sel:0,st:P.map(function(p){return p.st;}),upd:{},wx:'ok',route:null,routing:false,meLL:null,tracking:false,acc:0,simOn:false,walking:false,intro:-1,slide:0,introTag:false,gps:'',heading:null};
+function esc(t){return String(t).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
+var STN={open:'영업 중',closed:'쉬는 중',soon:'준비 중',info:'안내'};
+/* ---------- 가족 추억 앨범 + 체험 쿠폰 (게임 요소 없음) ---------- */
+
+var SV=function(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';};
+var TI={att:SV('<path d="M2 20l7-12 4 7 3-4 6 9z"/><circle cx="17" cy="6" r="2"/>'),home:SV('<path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/>'),map:SV('<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/>'),alb:SV('<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3.2"/><path d="M8 5l1.5-2h5L16 5"/>'),own:SV('<path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>'),
+ open:SV('<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'),kid:SV('<circle cx="12" cy="8" r="3.5"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>'),sos:SV('<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>'),tkt:SV('<path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/>')};
+function tabbar(){
+  function t(k,ic,lb,on){return '<button class="tb'+(on?' on':'')+'" data-act="tab-'+k+'">'+ic+lb+'</button>';}
+  var p=S.panel,home=S.view==='home'&&!p,att=S.view!=='home'&&!p&&S.cat===-5,mp=S.view!=='home'&&!p&&S.cat!==-5;
+  return '<nav class="tabbar">'+t('home',TI.home,'홈',home)+t('att',TI.att,'관광명소',att)+t('map',TI.map,'지도',mp)+t('alb',TI.alb,'내 혜택',p==='album')+'</nav>';
+}
+function installCard(){
+  if(INS.standalone)return '';
+  return '<div class="ins"><img src="icon-192.png" alt=""><div class="it"><b>앱처럼 쓰기</b><span>앱스토어 없이 홈 화면에 추가해요</span></div><button class="btn sm" data-act="install">추가</button></div>';
+}
+function installPanel(){
+  var h='<div class="panel"><div class="head"><span class="tag">앱처럼 쓰기</span><button class="pill" data-act="panel" data-t="">닫기</button></div><h2>홈 화면에 추가하기</h2><p class="muted">앱스토어에서 받을 필요 없어요. 추가하면 바탕화면에 \'신양2리\' 아이콘이 생기고, 눌러서 바로 열려요.</p>';
+  var st=function(n,t){return '<div class="stp"><i>'+n+'</i><p>'+t+'</p></div>';};
+  if(INS.kakao){h+='<div class="note">지금은 카카오톡·인스타 같은 앱 안에서 열려 있어요. 홈 화면 추가가 안 돼요. 오른쪽 위 메뉴(⋯ 또는 ⋮)에서 <b>\'다른 브라우저로 열기\'</b>를 누른 뒤 다시 시도해 주세요.</div>';}
+  if(INS.ios){h+=st(1,'Safari 아래쪽의 <b>공유 버튼</b>(네모에서 화살표가 나온 모양)을 눌러요.')+st(2,'목록을 올려서 <b>\'홈 화면에 추가\'</b>를 눌러요.')+st(3,'오른쪽 위 <b>\'추가\'</b>를 누르면 끝이에요.')+'<p class="small">아이폰은 Safari에서만 추가할 수 있어요.</p>';}
+  else{h+=st(1,'Chrome 오른쪽 위 <b>메뉴(⋮)</b>를 눌러요.')+st(2,'<b>\'홈 화면에 추가\'</b> 또는 <b>\'앱 설치\'</b>를 눌러요.')+st(3,'<b>\'설치\'</b>를 누르면 끝이에요.');}
+  return h+'</div>';
+}
+function statusCard(){
+  var bad=S.cancel,w=S.wave,wi=S.wind;
+  return '<div class="stat'+(bad?' bad':'')+'"><div class="st-h"><span class="dotl"></span>'+(bad?'오늘 여객선이 결항됐어요':'여객선 정상 운항 예정')+'</div><p>'+(bad?'섬에 머무는 가족을 위한 체류 혜택이 열려 있어요':'돌아가는 배 시간은 도착 항구에서 확인하세요')+'</p><div class="st-g"><div><span>파고</span><b>'+w+'m</b></div><div><span>바람</span><b>'+wi+'m/s</b></div><div><span>바다</span><b>'+(bad?'주의':'양호')+'</b></div></div></div>';
+}
+function stayCard(){
+  if(!S.cancel)return '';
+  var stay=[],eat=[];
+  [15].forEach(function(i){if(S.st[i]==='open')stay.push(P[i].name.replace(' (예시)',''));});
+  [1,2].forEach(function(i){if(S.st[i]==='open')eat.push(P[i].name.replace(' (예시)',''));});
+  var has=S.coupons.length>0;
+  return '<div class="sec"><div class="sec-h"><b>결항 안내 · 체류 도움</b></div>'+
+    '<div class="rowi" style="cursor:default"><span class="ri">'+IC.stay+'</span><span class="rt"><b>오늘 묵을 수 있는 곳</b><span>'+(stay.length?esc(stay.join(', '))+' 영업 중':'지금 받는 곳이 없어요. 마을회관에 문의하세요')+'</span></span></div>'+
+    '<div class="rowi" style="cursor:default"><span class="ri">'+IC.food+'</span><span class="rt"><b>지금 여는 식당·카페</b><span>'+(eat.length?esc(eat.join(', ')):'지금 여는 곳이 없어요')+'</span></span></div>'+
+    '<div class="rowi" style="cursor:default"><span class="ri">'+IC.ship+'</span><span class="rt"><b>내일 첫 배</b><span>운항 여부는 도착 항구에서 확인하세요</span></span></div>'+
+    '<div style="padding:6px 0 10px">'+(has?'<button class="btn" data-act="tab-alb">내 혜택 보기 ('+S.coupons.length+'장)</button>':'<button class="btn" data-act="checkin">마을 체크인하고 혜택 받기</button>')+'</div></div>';
+}
+function gi(c,ic,lb,col,nb){return '<button class="gi" data-act="cat" data-c="'+c+'" style="--cc:'+col+'"><span class="bg"><span class="gic">'+ic+'</span>'+(nb?'<span class="nb">'+nb+'</span>':'')+'</span><span>'+lb+'</span></button>';}
+function rowi(i){
+  var p=P[i];
+  return '<button class="rowi" data-act="sel" data-i="'+i+'"><span class="ri">'+IC[C[p.cat].ic]+'</span><span class="rt"><b>'+esc(p.name)+'</b><span>'+esc(p.sub)+'</span></span><span class="chip '+(S.st[i]==='info'?'':S.st[i])+'">'+STN[S.st[i]]+'</span></button>';
+}
+var ALB=[6,10,14,13,11,12];
+function isAlb(i){return ALB.indexOf(i)>=0;}
+function gotCount(){return ALB.filter(function(i){return S.got[i];}).length;}
+function activeCoupons(){return S.coupons.filter(function(c){return c.state!=='used';}).length;}
+function certBlock(i){
+  if(!isAlb(i))return '';
+  var isC=i===6;
+  if(S.got[i])return '<div class="cert done"><b>'+(isC?'숭어 체험 인증 완료':'기념 사진 저장됨')+'</b><div class="crow">'+(S.photos[i]?'<div class="thumb"><img class="ph" src="'+S.photos[i]+'" alt="우리 가족 사진"></div>':'')+'<p class="muted">추억 앨범에 저장됐어요.</p></div></div>';
+  if(!S.tagged[i])return '<div class="cert"><b>'+(isC?'숭어 체험 인증하기':'이 명소에서 가족사진 남기기')+'</b><p class="muted">이곳의 NFC 태그나 QR을 찍으면 가족사진을 앨범에 남길 수 있어요.</p><button class="btn" data-act="tag" data-i="'+i+'">태그 찍기</button></div>';
+  return '<div class="cert"><b>태그 확인 완료</b><p class="muted">앱 카메라로 가족사진을 찍어 주세요. 앨범 사진은 쓸 수 없어요.</p><label class="btn" for="cam-i">카메라로 사진 찍기</label><input class="file" type="file" accept="image/*" capture="environment" id="cam-i" data-i="'+i+'"><button class="btn ghost" data-act="shot" data-i="'+i+'">사진 없이 인증</button></div>';
+}
+function couponCard(c){
+  var k=KIND[c.kind],p=P[k.shop],body='';
+  if(c.state==='issued')body='<button class="btn" data-act="cuse" data-id="'+c.id+'">사용하기 (가게에서 보여 주세요)</button>';
+  else if(c.state==='requested')body='<div class="rq"><b style="font-weight:700;font-size:17px">사장님 확인 대기 중</b><p class="muted">'+esc(P[c.req_shop].name)+'에서 확인하면 사용 처리돼요.</p></div>';
+  else body='<span class="chip">사용 완료</span>';
+  return '<div class="cert'+(c.state==='used'?' done':'')+'"><b>'+esc(k.t)+'</b><p class="muted">'+esc(p.name)+' · 오늘과 내일까지</p>'+body+'</div>';
+}
+function albumPanel(){
+  var h='<div class="panel"><div class="head"><span class="tag">내 혜택·앨범</span><button class="pill" data-act="panel" data-t="">닫기</button></div><h2>내 혜택</h2>';
+  if(S.coupons.length){S.coupons.forEach(function(c){h+=couponCard(c);});}
+  else if(S.cancel)h+='<div class="cert"><b>결항 체류 혜택이 열려 있어요</b><p class="muted">마을 NFC 태그로 체크인하면 카페·식당·숙박 혜택을 받을 수 있어요.</p><button class="btn" data-act="checkin">마을 체크인하고 혜택 받기</button></div>';
+  else h+='<div class="note">여객선이 결항되면 이곳에 카페·식당·숙박 혜택이 열려요.</div>';
+  h+='<h2 style="margin-top:6px">우리 가족 추억 앨범</h2><div class="agrid">';
+  ALB.forEach(function(i){
+    var g=S.got[i];
+    h+='<button class="slot'+(g?' got':'')+'" data-act="albsel" data-i="'+i+'" style="font:inherit;color:inherit;cursor:pointer"><div class="sp">'+(g&&S.photos[i]?'<img class="ph" src="'+S.photos[i]+'" alt="사진">':'<span class="small">'+(g?'인증 완료':'비어 있음')+'</span>')+'</div><b>'+esc(P[i].name.replace(' (예시)',''))+'</b></button>';
+  });
+  return h+'</div></div>';
+}
+function showMsg(m){var el=document.createElement('div');el.className='toast';el.textContent=m;document.getElementById('app').appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},3200);}
+function fail(e){showMsg('오류: '+((e&&e.message)||e));}
+function sync(){
+  return B.load().then(function(d){
+    BIZ.forEach(function(i){if(d.spots[i])S.st[i]=d.spots[i];});
+    S.cancel=!!d.ferry.cancelled;S.wx=S.cancel?'bad':'ok';S.wave=d.ferry.wave;S.wind=d.ferry.wind;
+    S.allc=d.coupons;S.coupons=d.coupons.filter(function(c){return c.device_id===DEV;});
+    repaint();
+  }).catch(function(e){if(!window._se){window._se=1;fail(e);}});
+}
+function repaint(){
+  var a=document.activeElement,typing=a&&a.tagName==='INPUT'&&a.type!=='file';
+  if(S.panel){if(!typing)render(true);return;}
+  if(S.view==='home'){render(true);return;}
+  refreshList();
+}
+function resizeShot(file,cb){
+  var fr=new FileReader();
+  fr.onload=function(){var im=new Image();im.onload=function(){var m=640,r=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.8));};im.onerror=function(){cb(null);};im.src=fr.result;};
+  fr.onerror=function(){cb(null);};fr.readAsDataURL(file);
+}
+
+function openIds(){var r=[];P.forEach(function(p,i){if(S.st[i]==='open')r.push(i);});return r;}
+function allIds(){return P.map(function(p,i){return i;});}
+var ATT=[6,10,14,13,11,12,7,9];
+function catIds(c){if(c===-5)return ATT.slice();if(c===-4)return P.map(function(p,i){return i;}).filter(function(i){return P[i].kid||i===4||i===3;});if(c===-2)return openIds();if(c===-3)return allIds();var r=[];P.forEach(function(p,i){if(p.cat===c)r.push(i);});return r;}
+function catName(c){return c===-5?'관광명소':c===-4?'아이와 함께':c===-2?'지금 열린 곳':(c===-3?'전체 시설':C[c].name);}
+function matches(){
+  var q=S.q.trim().toLowerCase(),base=catIds(S.cat);if(!q)return base;
+  return base.filter(function(i){var p=P[i];return (p.name+' '+p.sub+' '+C[p.cat].name+' '+STN[S.st[i]]).toLowerCase().indexOf(q)>=0;});
+}
+
+/* ---------- 지도 ---------- */
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView(A,16);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+var hlLine=null,markers=L.layerGroup().addTo(map),meMarker=null,accCircle=null;
+function fitIds(ids){if(!ids.length)return;try{map.fitBounds(L.latLngBounds(ids.map(function(k){return P[k].ll;})),{paddingTopLeft:[40,130],paddingBottomRight:[40,340],maxZoom:17});}catch(e){}}
+fitIds(allIds());
+function drawMap(){
+  markers.clearLayers();
+  if(hlLine){map.removeLayer(hlLine);hlLine=null;}
+  var show=[];
+  if(S.view==='list')show=matches();
+  else if(S.view==='detail'){show=catIds(S.cat).slice();if(show.indexOf(S.sel)<0)show.push(S.sel);}
+  if(S.route&&S.route.to===S.sel&&S.route.pts&&S.view==='detail'){
+    hlLine=L.polyline(S.route.pts,{color:'#2F7FF0',weight:6,opacity:.95,lineCap:'round',dashArray:S.route.src==='line'?'2 10':null}).addTo(map);
+  }
+  show.forEach(function(i){
+    var p=P[i],big=(S.view==='detail'&&i===S.sel),sz=big?36:24;
+    var icon=L.divIcon({className:'mkwrap',html:'<div class="mk '+S.st[i]+(big?' big':'')+'">'+(big?'<span class="ml">'+esc(p.name)+'</span>':'')+'</div>',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    L.marker(p.ll,{icon:icon,keyboard:true,title:p.name,zIndexOffset:big?500:0}).on('click',function(){select(i);}).addTo(markers);
+  });
+}
+function focusSpot(i){map.setView(P[i].ll,Math.max(map.getZoom(),17),{animate:false});map.panBy([0,120],{animate:false});}
+function select(i){
+  if(S.view==='home'||S.cat===-1)S.cat=P[i].cat;
+  S.sel=i;S.view='detail';S.panel='';S.route=null;S.routing=false;cancelWalk();render();focusSpot(i);
+}
+function backToList(){S.view='list';S.route=null;S.routing=false;cancelWalk();render();fitIds(matches());}
+function goHome(){S.view='home';S.cat=-1;S.q='';S.route=null;S.routing=false;S.panel='';cancelWalk();render();}
+function openCat(c){S.cat=c;S.view='list';S.q='';S.panel='';render();fitIds(catIds(c));}
+
+/* ---------- 길찾기 ---------- */
+function hav(a,b){var R=6371000,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r,x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(x));}
+function plen(pts){var d=0;for(var i=1;i<pts.length;i++)d+=hav(pts[i-1],pts[i]);return d;}
+function fmtD(m){return m>=1000?(m/1000).toFixed(1)+'km':(Math.round(m/10)*10)+'m';}
+function fmtT(sec){var m=Math.max(1,Math.round(sec/60));return m>=60?Math.floor(m/60)+'시간 '+(m%60)+'분':m+'분';}
+function bdeg(a,b){var r=Math.PI/180,y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r),x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r);return (Math.atan2(y,x)/r+360)%360;}
+function bearing(a,b){return ['북','북동','동','남동','남','남서','서','북서'][Math.round(bdeg(a,b)/45)%8];}
+function stepText(s){
+  var m=s.maneuver||{},t=m.type,mod=m.modifier,nm=s.name?' · '+s.name:'';
+  if(t==='depart')return '출발'+nm; if(t==='arrive')return '도착';
+  var dir={'left':'좌회전','sharp left':'크게 좌회전','slight left':'약간 왼쪽','right':'우회전','sharp right':'크게 우회전','slight right':'약간 오른쪽','straight':'직진','uturn':'유턴'}[mod]||'직진';
+  return dir+nm;
+}
+function fetchRoute(from,to){
+  var url='https://routing.openstreetmap.de/routed-foot/route/v1/foot/'+from[1]+','+from[0]+';'+to[1]+','+to[0]+'?overview=full&geometries=geojson&steps=true';
+  var ctl=('AbortController' in window)?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort();},8000);
+  return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){clearTimeout(tm);if(!r.ok)throw new Error('http');return r.json();}).then(function(j){
+    var rt=j.routes&&j.routes[0];if(!rt)throw new Error('none');
+    var steps=[];(rt.legs||[]).forEach(function(l){(l.steps||[]).forEach(function(s){steps.push({t:stepText(s),d:s.distance});});});
+    return {pts:rt.geometry.coordinates.map(function(c){return [c[1],c[0]];}),dist:rt.distance,dur:rt.duration,steps:steps,src:'osm'};
+  });
+}
+function prevStart(){return S.sel!==0?{ll:P[0].ll,label:'prev',name:P[0].name}:null;}
+function getStart(){
+  return new Promise(function(res){
+    if(S.tracking&&S.meLL){res({ll:S.meLL,label:'me'});return;}
+    if(!navigator.geolocation){res(prevStart());return;}
+    navigator.geolocation.getCurrentPosition(function(pos){S.meLL=[pos.coords.latitude,pos.coords.longitude];res({ll:S.meLL,label:'me'});},function(){res(prevStart());},{timeout:6000,maximumAge:30000});
+  });
+}
+function startRoute(){
+  var i=S.sel,to=P[i].ll;
+  S.routing=true;S.route=null;render();
+  getStart().then(function(st){
+    if(S.sel!==i)return;
+    if(!st){S.routing=false;S.route={to:i,err:'start'};render();return;}
+    function done(r){if(S.sel!==i)return;r.to=i;r.from=st.label;r.fromName=st.name;r.fromLL=st.ll;S.route=r;S.routing=false;render();
+      try{map.fitBounds(L.polyline(r.pts).getBounds(),{paddingTopLeft:[40,130],paddingBottomRight:[40,360]});}catch(e){}}
+    if(st.label==='prev'&&P[i].path&&P[i].path.length>1){var pts=[st.ll].concat(P[i].path),d=plen(pts);done({pts:pts,dist:d,dur:d/1.25,steps:[],src:'team'});return;}
+    fetchRoute(st.ll,to).then(done).catch(function(){var d=hav(st.ll,to);done({pts:[st.ll,to],dist:d,dur:d/1.25,steps:[],src:'line'});});
+  });
+}
+function routeCard(i){
+  if(S.routing)return '<div class="note">길을 찾는 중이에요…</div>';
+  var r=S.route;if(!r||r.to!==i)return '';
+  if(r.err)return '<div class="note">내 위치를 가져오지 못했어요. 위치 권한을 허용하거나 목록에서 다른 시설을 골라 주세요.</div>';
+  var lab={osm:'OSM 보행 경로',team:'팀 답사 경로',line:'직선 거리'}[r.src];
+  var from=r.from==='me'?'내 위치에서':esc(r.fromName||'도착 항구')+'에서';
+  var h='<div class="box"><div class="row between"><b>도보 '+fmtT(r.dur)+' · '+fmtD(r.dist)+'</b><span class="chip">'+lab+'</span></div><p class="muted">'+from+' '+esc(P[i].name)+'까지</p>';
+  if(r.src==='line')h+='<p class="muted">경로 정보를 가져오지 못해 직선으로 표시했어요. 목적지는 '+bearing(r.fromLL,P[i].ll)+'쪽이에요. 실제 길은 돌아갈 수 있어요.</p>';
+  if(r.steps&&r.steps.length){h+='<ol class="steps">';r.steps.slice(0,6).forEach(function(s){h+='<li>'+esc(s.t)+(s.d?' <span>'+fmtD(s.d)+'</span>':'')+'</li>';});h+='</ol>';}
+  return h+'</div>';
+}
+
+/* ---------- 실시간 위치 ---------- */
+var watchId=null,hadFix=false,simRaf=null;
+var meIcon=L.divIcon({className:'mkwrap',html:'<div class="me"><i class="me-halo"></i><i class="me-rot"></i><i class="me-dot"></i></div>',iconSize:[56,56],iconAnchor:[28,28]});
+function gpsText(i){
+  if(!S.meLL)return '내 위치를 찾는 중이에요…';
+  var d=hav(S.meLL,P[i].ll);
+  var t=d<10?'이곳과 거의 같은 위치예요':'내 위치에서 '+fmtD(d)+' · '+bearing(S.meLL,P[i].ll)+'쪽';
+  if(S.acc)t+=' · 위치 오차 약 '+Math.round(S.acc)+'m';
+  return t;
+}
+function updateGps(){var el=document.getElementById('gpsline');if(el)el.textContent=gpsText(S.sel);}
+function onPos(pos){
+  var ll=[pos.coords.latitude,pos.coords.longitude],first=!hadFix,hadMsg=!!S.gps;
+  var hd=pos.coords.heading;
+  if(!(typeof hd==='number'&&!isNaN(hd))){hd=null;if(S.meLL&&hav(S.meLL,ll)>2)hd=bdeg(S.meLL,ll);}
+  if(hd!==null)S.heading=hd;
+  hadFix=true;S.meLL=ll;S.acc=pos.coords.accuracy||0;S.gps='';
+  if(!meMarker){meMarker=L.marker(ll,{icon:meIcon,interactive:false,zIndexOffset:900}).addTo(map);}else{meMarker.setLatLng(ll);}
+  var el=meMarker.getElement&&meMarker.getElement(),rot=el&&el.querySelector('.me-rot');
+  if(rot&&typeof S.heading==='number'){rot.classList.add('on');rot.style.transform='rotate('+Math.round(S.heading)+'deg)';}
+  if(!accCircle){accCircle=L.circle(ll,{radius:S.acc,color:'#2F7FF0',weight:1,fillOpacity:.12,interactive:false}).addTo(map);}else{accCircle.setLatLng(ll);accCircle.setRadius(S.acc);}
+  if(first&&S.view!=='home'){map.setView(ll,16,{animate:false});map.panBy([0,120],{animate:false});}
+  if(first||hadMsg)render();else updateGps();
+}
+function onPosErr(err){
+  var c=err&&err.code;
+  S.gps=c===1?'위치 권한이 꺼져 있어요. 브라우저 설정에서 허용해 주세요':(c===3?'위치를 찾는 데 시간이 걸려요':'위치를 가져오지 못했어요');
+  if(c===1)stopTrack(true);
+  render();
+}
+function startTrack(){
+  if(!navigator.geolocation){S.gps='이 기기는 위치를 지원하지 않아요';render();return;}
+  if(watchId!==null)return;
+  S.tracking=true;S.gps='위치 찾는 중…';render();
+  watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+}
+function stopTrack(silent){
+  if(watchId!==null&&navigator.geolocation){navigator.geolocation.clearWatch(watchId);}
+  cancelWalk();watchId=null;S.tracking=false;S.simOn=false;hadFix=false;S.meLL=null;S.acc=0;S.heading=null;
+  if(meMarker){map.removeLayer(meMarker);meMarker=null;}
+  if(accCircle){map.removeLayer(accCircle);accCircle=null;}
+  if(!silent){S.gps='';render();}
+}
+function cancelWalk(){if(simRaf){cancelAnimationFrame(simRaf);simRaf=null;}S.walking=false;}
+function simUi(i){return '';}
+
+/* ---------- 화면 ---------- */
+var OSM='<a class="osm" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>';
+function glLabel(){return S.tracking?(S.simOn?'가족 여행객 위치':'내 위치 켬'):'내 위치';}
+function chipsRow(home){
+  return '<div class="chips"><button class="pill" data-act="home">← 홈</button><button class="pill'+(S.tracking?' on':'')+'" data-act="gps">'+glLabel()+'</button></div>';
+}
+function topView(){
+  return '<div class="topwrap"><div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>'+
+    '<input id="q" type="search" placeholder="\''+esc(catName(S.cat))+'\' 안에서 검색" value="'+esc(S.q)+'" autocomplete="off" enterkeyhint="search" aria-label="시설 검색"></div>'+chipsRow(false)+'</div>';
+}
+function acard(i){
+  var p=P[i],c=C[p.cat];
+  return '<button class="ac" data-act="sel" data-i="'+i+'" style="--cc:'+c.col+'"><span class="ac-top"><span class="ac-ic">'+IC[c.ic]+'</span>'+(p.kid?'<span class="chip kid">아이와 함께</span>':'')+'</span><b>'+esc(p.name)+'</b><span class="ac-s">'+esc(p.sub.replace(/^[^·]*· /,''))+'</span><span class="ac-d">'+esc(p.desc)+'</span></button>';
+}
+function homeView(){
+  var oi=openIds(),g='',fe='',lst='',open='';
+  [6,10,14,13,11,12].forEach(function(i){fe+=acard(i);});
+  ATT.slice(0,5).forEach(function(i){lst+=rowi(i);});
+  g+=gi(-5,TI.att,'관광명소','#2563EB')+gi(2,IC.exp,'체험','#1E9E5A')+gi(4,IC.spot,'올레길·명소','#C4703F')+gi(-4,TI.kid,'아이와 함께','#E5701B');
+  g+=gi(0,IC.food,'먹거리·카페','#FF8A2B')+gi(1,IC.conv,'편의·교통','#4E7DD9')+gi(3,IC.stay,'숙박·쉼','#8A63D2')+gi(-2,TI.open,'지금 열린 곳','#12A150',oi.length);
+  oi.slice(0,3).forEach(function(i){open+=rowi(i);});
+  return '<div class="home">'+
+    '<div class="appbar"><div><div class="ab-t">신양2리</div><div class="ab-s">추자도 · 관광명소 안내</div></div><button class="gpsbtn'+(S.tracking?' on':'')+'" data-act="gps">'+(S.tracking?'내 위치 켬':'내 위치')+'</button></div>'+
+    '<button class="fsearch" data-act="cat" data-c="-3">'+SV('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>')+'명소·시설 검색</button>'+
+    '<div class="sec-h2"><b>추천 관광명소</b><button data-act="cat" data-c="-5">전체 보기</button></div>'+
+    '<div class="hscroll">'+fe+'</div>'+
+    statusCard()+stayCard()+installCard()+
+    '<div class="gridm">'+g+'</div>'+
+    '<div class="sec"><div class="sec-h"><b>명소 둘러보기</b><button data-act="cat" data-c="-5">전체 보기</button></div>'+lst+'</div>'+
+    '<div class="sec"><div class="sec-h"><b>내 혜택·가족 앨범</b><button data-act="panel" data-t="album">열기</button></div><button class="rowi" data-act="panel" data-t="album"><span class="ri">'+TI.tkt+'</span><span class="rt"><b>혜택 '+activeCoupons()+'장 · 사진 '+gotCount()+'/'+ALB.length+'곳</b><span>결항 때 체류 혜택, 명소에서 남긴 가족 사진</span></span></button></div>'+
+    '<div class="sec"><div class="sec-h"><b>지금 열린 곳</b><button data-act="cat" data-c="-2">전체 보기</button></div>'+(open||'<p class="empty">지금 영업 중인 곳이 없어요.</p>')+'</div>'+
+    '<div class="sec"><div class="sec-h"><b>안전·도움</b></div><div class="rowi" style="cursor:default"><span class="ri" style="background:#FFF1EF;color:#E5483B">'+TI.sos+'</span><span class="rt"><b>응급 상황은 119</b><span>섬 안 응급 연락처는 현장 확인 후 넣어요</span></span></div></div>'+
+    '<p class="foot">'+(S.gps?esc(S.gps)+' · ':'')+'(예시)가 붙은 이름·위치와 배편·기상 값은 예시 정보예요 · '+(B.mode==='supabase'?'실시간 서버 연결':'서버 미연결')+' · '+BUILD+'<br><button class="more" data-act="panel" data-t="owner">가게 주인 화면</button></p></div>';
+}
+function card(i){
+  var p=P[i];
+  return '<button class="card" data-act="sel" data-i="'+i+'"><span class="dot '+S.st[i]+'"></span><span class="cinfo"><b>'+esc(p.name)+'</b><span>'+esc(p.sub)+'</span></span><span class="chip '+(S.st[i]==='info'?'':S.st[i])+'">'+STN[S.st[i]]+'</span></button>';
+}
+function listSheet(){
+  var m=matches(),h='<div class="sheet"><div class="grab"></div>';
+  h+='<div class="row between"><span class="lt">'+esc(catName(S.cat))+'</span><span class="chip">'+m.length+'곳</span></div>';
+  h+='<p class="small">임시 좌표 · 답사 후 교체'+(S.gps?' · '+esc(S.gps):'')+'</p>';
+  if(!m.length)h+='<p class="muted">'+(S.q.trim()?'검색 결과가 없어요. 다른 말로 찾아보세요.':'지금 해당하는 곳이 없어요.')+'</p>';
+  m.forEach(function(i){h+=card(i);});
+  return h+OSM+'</div>';
+}
+function detailSheet(){
+  var i=S.sel,p=P[i],h='<div class="sheet"><div class="grab"></div>';
+  h+='<button class="more" data-act="back">← '+esc(catName(S.cat))+' 목록</button>';
+  h+='<div class="row between"><span class="sname">'+esc(p.name)+'</span><span class="chip '+(S.st[i]==='info'?'':S.st[i])+'">'+STN[S.st[i]]+'</span></div>';
+  h+='<p class="muted">'+esc(p.sub)+(p.kid?' <span class="chip kid">아이와 함께</span>':'')+'</p>';
+  if(p.biz)h+='<p class="small">영업 상태는 가게 주인이 버튼으로 직접 올려요'+(S.upd[i]?' · '+S.upd[i]+' 갱신':' · 기본값')+'</p>';
+  h+='<div class="kv"><span>소개</span><p>'+esc(p.desc)+'</p><span>이용 팁</span><p>'+esc(p.tip)+'</p></div>';
+  if(S.tracking)h+='<div class="box"><p class="muted gpsl" id="gpsline">'+esc(gpsText(i))+'</p><button class="more" data-act="center">내 위치로 지도 이동</button>'+simUi(i)+'</div>';
+  if(isAlb(i)||i===1||i===2)h+=certBlock(i);
+  var kakao='https://map.kakao.com/link/to/'+encodeURIComponent(p.name)+','+p.ll[0]+','+p.ll[1];
+  h+='<div class="btns"><button class="btn" data-act="route"'+(S.routing?' disabled':'')+'>'+(S.routing?'찾는 중…':'길찾기')+'</button></div>'+routeCard(i);
+  h+='<a class="more" href="'+kakao+'" target="_blank" rel="noopener">카카오맵에서도 열기</a>';
+  h+='<div class="note">이 시설의 NFC 태그나 QR(주소 끝에 ?spot='+(i+1)+')를 찍으면 이 화면이 바로 열려요.</div>';
+  return h+OSM+'</div>';
+}
+var FABSVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+function fab(){
+  var on=S.tracking&&S.meLL,wait=S.tracking&&!S.meLL;
+  return '<button class="fab'+(on?' on':'')+(wait?' wait':'')+'" data-act="locate" aria-label="'+(on?'내 위치로 이동':'내 위치 보기')+'">'+FABSVG+'</button>';
+}
+function sheet(){return fab()+(S.view==='detail'?detailSheet():listSheet());}
+function ownerPanel(){
+  var h='<div class="panel"><div class="head"><span class="tag">가게 주인·운영 화면</span><button class="pill" data-act="panel" data-t="">돌아가기</button></div>';
+  var mode=B.mode==='supabase'?'실시간 서버 연결됨':'서버 미연결 · 같은 브라우저 탭끼리만 공유 · PIN 1234';
+  if(!S.ownerOk){
+    return h+'<h2>PIN 입력</h2><p class="muted">가게 주인만 영업 상태와 쿠폰 사용을 처리할 수 있어요.</p><div class="owner"><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" style="font:inherit;font-size:20px;padding:14px;border:1px solid var(--line);border-radius:12px"><button class="btn" data-act="pin">확인</button></div><p class="small">'+mode+'</p></div>';
+  }
+  h+='<h2>가게 운영</h2><p class="small">'+mode+'</p>';
+  var req=S.allc.filter(function(c){return c.state==='requested';});
+  h+='<div class="owner"><b>쿠폰 사용 요청 '+(req.length?'('+req.length+')':'')+'</b>';
+  if(!req.length)h+='<p class="muted">지금 들어온 요청이 없어요.</p>';
+  req.forEach(function(c){h+='<div class="rq"><b style="font-weight:700;font-size:17px">'+esc(KIND[c.kind].t)+'</b><p class="muted">'+esc(P[c.req_shop].name)+'</p><button class="btn" data-act="confirm" data-id="'+c.id+'">확인 (사용 처리)</button></div>';});
+  h+='</div>';
+  h+='<div class="owner"><b>운항 상태 (실제로는 센서·공공데이터가 자동 판정)</b><div class="seg"><button class="'+(!S.cancel?'sel ok':'')+'" data-act="ferry" data-v="ok">정상 운항</button><button class="'+(S.cancel?'sel bad':'')+'" data-act="ferry" data-v="cancel">결항</button></div><p class="small">실제로는 기상·파고 센서와 여객선 운항 정보가 자동으로 판정해요.</p></div>';
+  BIZ.forEach(function(i){
+    h+='<div class="owner"><b>'+esc(P[i].name)+'</b><div class="seg"><button class="'+(S.st[i]==='open'?'sel open':'')+'" data-act="set" data-i="'+i+'" data-v="open">영업 중</button><button class="'+(S.st[i]==='closed'?'sel closed':'')+'" data-act="set" data-i="'+i+'" data-v="closed">쉬는 중</button></div></div>';
+  });
+  var n={issued:0,requested:0,used:0};S.allc.forEach(function(c){n[c.state]++;});
+  h+='<div class="owner"><b>오늘 혜택 현황 (정산 자료)</b><div class="st-g"><div><span>발급</span><b>'+S.allc.length+'</b></div><div><span>확인 대기</span><b>'+n.requested+'</b></div><div><span>사용 완료</span><b>'+n.used+'</b></div></div></div>';
+  h+='<button class="btn ghost" data-act="reset">혜택 기록 초기화</button><button class="btn ghost" data-act="owner-out">잠그기</button></div>';
+  return h;
+}
+function render(keep){
+  var sc=null;if(keep){var el0=document.querySelector('.home')||document.querySelector('.panel');if(el0)sc=[el0.className.split(' ')[0],el0.scrollTop];}
+  drawMap();
+  var h;
+  if(S.view==='home')h=homeView();else h=topView()+'<div id="sheetwrap">'+sheet()+'</div>';
+  if(S.panel==='owner')h+=ownerPanel();
+  else if(S.panel==='album')h+=albumPanel();
+  else if(S.panel==='install')h+=installPanel();
+  h+=tabbar();
+  document.getElementById('ui').innerHTML=h;
+  if(sc){var n0=document.querySelector('.'+sc[0]);if(n0)n0.scrollTop=sc[1];}
+}
+function refreshList(){drawMap();var w=document.getElementById('sheetwrap');if(w)w.innerHTML=sheet();}
+function hhmm(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+function autoLocate(){
+  if(S.tracking)return;
+  try{if(navigator.permissions&&navigator.permissions.query){navigator.permissions.query({name:'geolocation'}).then(function(r){if(r.state==='granted'&&!S.tracking&&S.intro<0)startTrack();},function(){});}}catch(e){}
+}
+var ui=document.getElementById('ui');
+ui.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]');if(!t)return;
+  var a=t.getAttribute('data-act'),i=parseInt(t.getAttribute('data-i'),10);
+  if(a==='sel'){select(i);return;}
+  else if(a==='back'){backToList();return;}
+  else if(a==='home'){goHome();return;}
+  else if(a==='cat'){openCat(parseInt(t.getAttribute('data-c'),10));return;}
+  else if(a==='panel'){S.panel=t.getAttribute('data-t');}
+  else if(a==='set'){B.setStatus(S.pin,i,t.getAttribute('data-v')).then(sync).catch(fail);return;}
+  else if(a==='ferry'){var cn=t.getAttribute('data-v')==='cancel';B.setFerry(S.pin,cn,cn?2.5:0.8,cn?12:4).then(sync).catch(fail);return;}
+  else if(a==='pin'){var pe=document.getElementById('pin');B.checkPin(pe?pe.value:'').then(function(ok){if(ok){S.pin=pe.value;S.ownerOk=true;sync();}else showMsg('PIN이 맞지 않아요');}).catch(fail);return;}
+  else if(a==='owner-out'){S.ownerOk=false;S.pin='';}
+  else if(a==='reset'){B.reset(S.pin).then(sync).catch(fail);return;}
+  else if(a==='confirm'){B.confirm(S.pin,t.getAttribute('data-id')).then(function(){showMsg('사용 처리했어요');return sync();}).catch(fail);return;}
+  else if(a==='checkin'){B.checkin(5).then(function(n){showMsg(n?'혜택 '+n+'장이 열렸어요':'이미 받았거나 결항이 아니에요');S.panel='album';return sync();}).catch(fail);return;}
+  else if(a==='cuse'){var cid=t.getAttribute('data-id'),cc=S.coupons.filter(function(x){return x.id===cid;})[0];if(cc){B.requestUse(cid,KIND[cc.kind].shop).then(sync).catch(fail);}return;}
+  else if(a==='gps'){if(S.tracking)stopTrack();else startTrack();return;}
+  else if(a==='locate'){if(S.tracking&&S.meLL){map.setView(S.meLL,Math.max(map.getZoom(),16),{animate:false});map.panBy([0,120],{animate:false});}else if(!S.tracking){startTrack();}return;}
+  else if(a==='center'){if(S.meLL){map.setView(S.meLL,17,{animate:false});map.panBy([0,120],{animate:false});}return;}
+  else if(a==='route'){startRoute();return;}
+  else if(a==='tab-home'){S.panel='';goHome();return;}
+  else if(a==='tab-map'){S.panel='';openCat(-3);return;}
+  else if(a==='tab-alb'){S.panel='album';}
+  else if(a==='install'){if(INS.ev&&!INS.kakao){var ev=INS.ev;INS.ev=null;ev.prompt();ev.userChoice.then(function(c){if(c&&c.outcome==='accepted')showMsg('홈 화면에 추가했어요');repaint();}).catch(function(){});return;}S.panel='install';}
+  else if(a==='tab-att'){S.panel='';openCat(-5);return;}
+  else if(a==='tag'){S.tagged[i]=true;}
+  else if(a==='shot'){S.got[i]=true;}
+  else if(a==='albsel'){S.panel='';select(i);return;}
+  render();
+});
+ui.addEventListener('change',function(e){
+  var t=e.target;if(!t||t.id!=='cam-i'||!t.files||!t.files[0])return;
+  var i=parseInt(t.getAttribute('data-i'),10);
+  resizeShot(t.files[0],function(url){if(url)S.photos[i]=url;S.got[i]=true;render();});
+});
+ui.addEventListener('input',function(e){
+  if(e.target&&e.target.id==='q'){
+    S.q=e.target.value;
+    if(S.view==='detail'&&S.q.trim()){S.view='list';S.route=null;cancelWalk();}
+    refreshList();
+    var m=matches();if(m.length)fitIds(m);
+  }
+});
+
+/* ---------- 시작: ?spot=N 이면 그 시설 안내가 바로 열림(NFC·QR), ?skip=1 이면 소개 없이 시작 ---------- */
+var n=NaN,sk=null;
+try{var qs=new URLSearchParams(location.search);n=parseInt(qs.get('spot'),10);sk=qs.get('skip');}catch(e){}
+if(n>=1&&n<=P.length){S.sel=n-1;S.cat=P[n-1].cat;S.view='detail';S.tagged[n-1]=true;try{history.replaceState(null,'',location.pathname);}catch(e){}}
+render();
+if(n>=1&&n<=P.length)focusSpot(n-1);
+autoLocate();
+B.onChange(sync);setInterval(sync,20000);
+(function(){var t0=Date.now(),done=false;
+  function hide(){if(done)return;done=true;var w=Math.max(0,2000-(Date.now()-t0));setTimeout(function(){var el=document.getElementById('splash');if(el){el.classList.add('off');setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},600);}},w);}
+  sync().then(hide,hide);setTimeout(hide,4500);})();
+</script>
+</body>
+</html>
